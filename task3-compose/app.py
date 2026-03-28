@@ -2,8 +2,11 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+# Дозволяємо браузеру робити запити до нашого API
+CORS(app)
 
 def get_db():
     return psycopg2.connect(
@@ -35,7 +38,7 @@ def init_db():
 def get_tasks():
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM tasks ORDER BY created_at DESC")
+    cur.execute("SELECT * FROM tasks ORDER BY id ASC")
     tasks = cur.fetchall()
     cur.close()
     conn.close()
@@ -58,39 +61,6 @@ def create_task():
     cur.close()
     conn.close()
     return jsonify(task), 201
-
-@app.route("/tasks/<int:task_id>", methods=["GET"])
-def get_task(task_id):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM tasks WHERE id = %s", (task_id,))
-    task = cur.fetchone()
-    cur.close()
-    conn.close()
-    if not task:
-        return jsonify({"error": "not found"}), 404
-    return jsonify(task)
-
-@app.route("/tasks/<int:task_id>", methods=["PUT"])
-def update_task(task_id):
-    data = request.get_json()
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """UPDATE tasks
-           SET title = COALESCE(%s, title),
-               description = COALESCE(%s, description),
-               done = COALESCE(%s, done)
-           WHERE id = %s RETURNING *""",
-        (data.get("title"), data.get("description"), data.get("done"), task_id)
-    )
-    task = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-    if not task:
-        return jsonify({"error": "not found"}), 404
-    return jsonify(task)
 
 @app.route("/tasks/<int:task_id>", methods=["DELETE"])
 def delete_task(task_id):

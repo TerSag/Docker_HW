@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мої Задачі (Docker)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-2xl mx-auto bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700">
+        <h1 class="text-3xl font-bold mb-6 text-blue-400">Управління задачами</h1>
+        
+        <div class="flex gap-3 mb-8">
+            <input id="taskInput" type="text" placeholder="Що потрібно зробити?" 
+                   class="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="addTask()" 
+                    class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-lg font-semibold transition-colors">
+                Додати
+            </button>
+        </div>
+
+        <ul id="taskList" class="space-y-3">
+            </ul>
+    </div>
+
+    <script>
+        // Звертаємося до нашого Python API на порті 5000 вашого Mac
+        const API_URL = 'http://localhost:5000/tasks';
+
+        // 1. Отримання задач з бази
+        async function loadTasks() {
+            const response = await fetch(API_URL);
+            const tasks = await response.json();
+            const list = document.getElementById('taskList');
+            
+            list.innerHTML = tasks.map(task => `
+                <li class="flex justify-between items-center bg-gray-700 p-4 rounded-lg border border-gray-600">
+                    <span class="text-lg">${task.title}</span>
+                    <button onclick="deleteTask(${task.id})" class="text-red-400 hover:text-red-300 font-medium px-2 py-1 bg-gray-800 rounded">
+                        Видалити
+                    </button>
+                </li>
+            `).join('');
+        }
+
+        // 2. Додавання нової задачі
+        async function addTask() {
+            const input = document.getElementById('taskInput');
+            if (!input.value) return;
+
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: input.value, description: "" })
+            });
+            
+            input.value = ''; // Очищаємо поле
+            loadTasks(); // Оновлюємо список
+        }
+
+        // 3. Видалення задачі
+        async function deleteTask(id) {
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            loadTasks(); // Оновлюємо список після видалення
+        }
+
+        // Запускаємо завантаження при відкритті сторінки
+        loadTasks();
+    </script>
+</body>
+</html>
